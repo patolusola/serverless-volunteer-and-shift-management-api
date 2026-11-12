@@ -20,8 +20,7 @@ resource "aws_iam_role" "github_actions_role" {
         }
       Condition = {
           StringLike = {
-            # Starts with repo: (makes AWS happy) -> * (ignores username) -> exact repo name -> * (ignores branch)
-            "token.actions.githubusercontent.com:sub" = "repo:*/serverless-volunteer-and-shift-management-api:*"
+            "token.actions.githubusercontent.com:sub" = "repo:patolusola/serverless-volunteer-and-shift-management-api:*"
           }
           StringEquals = {
             "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
