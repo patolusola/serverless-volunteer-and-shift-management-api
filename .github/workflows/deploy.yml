@@ -1,0 +1,39 @@
+name: Deploy Serverless API
+
+# this determines when the assembly line should run which is everytime i push to the "main" branch.
+on:
+  push:
+    branches:
+      - main
+
+# this gives github the permission to ask aws for the temporary vip pass
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      # step 1 - downloads my code from the github repo to the computer
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # step 2 - shows aws the vip pass to let me in
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::974389254009:role/github-actions-deploy-role
+          aws-region: eu-west-2
+
+      # step 3 - installs terraform tools on the computer
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      # step 4 - here it downloads the aws plugins and connects to my cloud memory (s3)
+      - name: Terraform Init
+        run: terraform init
+
+      # step 5 - builds my changes automatically , yaaaaay!
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
