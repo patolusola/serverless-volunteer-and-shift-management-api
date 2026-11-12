@@ -18,14 +18,19 @@ resource "aws_iam_role" "github_actions_role" {
         Principal = {
           Federated = aws_iam_openid_connect_provider.github.arn
         }
-        Condition = {
-          StringLike = {
-            "token.actions.githubusercontent.com:sub" = "repo:patolusola/serverless-volunteer-and-shift-management-api:*"
-          }
-          StringEquals = {
-            "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
-          }
-        }
+      Condition = {
+      StringLike = {
+        "token.actions.githubusercontent.com:sub" = [
+          "repo:patolusola/*",
+          "repo:Patolusola/*",
+          "repo:PatOlusola/*",
+          "repo:PATOLUSOLA/*"
+        ]
+      }
+      StringEquals = {
+        "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
+      }
+      }
       }
     ]
   })
