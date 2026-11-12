@@ -21,7 +21,7 @@ resource "aws_iam_role" "github_actions_role" {
         Condition = {
           StringLike = {
             # this line allows only the specified repository to use this pass
-            "token.actions.githubusercontent.com:sub" = "repo:patolusola/serverless-volunteer-and-shift-management-api:*"
+            "token.actions.githubusercontent.com:sub" = "repo:*"
           }
           StringEquals = {
             "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
