@@ -19,9 +19,9 @@ resource "aws_iam_role" "github_actions_role" {
           Federated = aws_iam_openid_connect_provider.github.arn
         }
         Condition = {
-          StringLike = {
-            # this line allows only the specified repository to use this pass
-            "token.actions.githubusercontent.com:sub" = "repo:patolusola/serverless-volunteer-and-shift-management-api:*"
+          # changed this to StringEqualsIgnoreCase!
+          StringEqualsIgnoreCase = {
+            "token.actions.githubusercontent.com:sub" = "repo:patolusola/serverless-volunteer-and-shift-management-api:ref:refs/heads/main"
           }
           StringEquals = {
             "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
