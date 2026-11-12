@@ -19,9 +19,8 @@ resource "aws_iam_role" "github_actions_role" {
           Federated = aws_iam_openid_connect_provider.github.arn
         }
         Condition = {
-          # changed this to StringEqualsIgnoreCase!
-          StringEqualsIgnoreCase = {
-            "token.actions.githubusercontent.com:sub" = "repo:patolusola/serverless-volunteer-and-shift-management-api:ref:refs/heads/main"
+          StringLike = {
+            "token.actions.githubusercontent.com:sub" = "repo:patolusola/serverless-volunteer-and-shift-management-api:*"
           }
           StringEquals = {
             "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
