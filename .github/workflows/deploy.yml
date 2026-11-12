@@ -18,6 +18,9 @@ jobs:
       # step 1 - downloads my code from the github repo to the computer
       - name: Checkout Code
         uses: actions/checkout@v4
+      
+      - name: Print Exact GitHub Identity
+        run: echo "GitHub is telling AWS my repo is exactly -> ${{ github.repository }}"
 
       # step 2 - shows aws the vip pass to let me in
       - name: Configure AWS Credentials
