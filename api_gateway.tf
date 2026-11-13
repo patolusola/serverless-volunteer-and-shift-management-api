@@ -4,9 +4,9 @@ resource "aws_apigatewayv2_api" "http_api" {
   protocol_type = "HTTP"
 
   cors_configuration {
-    allow_origins = ["*"]
-    allow_methods = ["POST", "GET", "OPTIONS"]
-    allow_headers = ["content-type"]
+    allow_origins = ["https://d1ue1aryz7nwkm.cloudfront.net"]
+    allow_methods = ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+    allow_headers = ["Content-Type", "Authorization"]
     max_age       = 300
   }
 }
