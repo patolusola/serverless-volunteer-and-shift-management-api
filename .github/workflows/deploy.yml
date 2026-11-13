@@ -40,3 +40,6 @@ jobs:
       # step 5 - builds my changes automatically , yaaaaay!
       - name: Terraform Apply
         run: terraform apply -auto-approve
+        
+      - name: Sync Frontend to S3
+        run: aws s3 sync ./frontend s3://volunteer-shift-management-api-frontend --delete
