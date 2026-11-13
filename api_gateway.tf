@@ -32,6 +32,19 @@ resource "aws_apigatewayv2_route" "post_shift" {
   target    = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"
 }
 
+# this ensures get routes exist in my api gateway
+resource "aws_apigatewayv2_route" "get_volunteers" {
+  api_id    = aws_apigatewayv2_api.http_api.id 
+  route_key = "GET /volunteers"
+  target    = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"
+}
+
+resource "aws_apigatewayv2_route" "get_shifts" {
+  api_id    = aws_apigatewayv2_api.http_api.id 
+  route_key = "GET /shifts"
+  target    = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"
+}
+
 # we light up the api so it is live on the internet
 resource "aws_apigatewayv2_stage" "default_stage" {
   api_id      = aws_apigatewayv2_api.http_api.id

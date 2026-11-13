@@ -16,7 +16,11 @@
         }
         .container {
             width: 100%;
+            max-width: 750px;
+        }
+        .form-section {
             max-width: 500px;
+            margin: 0 auto;
         }
         h2 {
             color: #FFD700;
@@ -24,16 +28,10 @@
             padding-bottom: 10px;
             margin-top: 40px;
         }
-        label {
-            display: block;
-            margin-top: 15px;
-            font-size: 14px;
-            color: #aaa;
-        }
         input, select {
             width: 100%;
             padding: 12px;
-            margin-top: 5px;
+            margin-top: 10px;
             background-color: #222;
             border: 1px solid #444;
             color: white;
@@ -60,50 +58,151 @@
             background-color: #e6c200;
         }
         .status {
-            margin-top: 10px;
+            margin-top: 12px;
+            padding: 10px;
             font-size: 14px;
             text-align: center;
             min-height: 20px;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+        .status.success {
+            background-color: rgba(74, 222, 128, 0.15);
+            color: #4ade80;
+            border: 1px solid #4ade80;
+        }
+        .status.error {
+            background-color: rgba(248, 113, 113, 0.15);
+            color: #f87171;
+            border: 1px solid #f87171;
+        }
+        .status.loading {
             color: #FFD700;
+        }
+        .table-wrapper {
+            overflow-x: auto;
+            margin-top: 15px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: #1a1a1a;
+            border: 1px solid #333;
+            font-size: 14px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #333;
+        }
+        th {
+            background-color: #222;
+            color: #FFD700;
+            font-weight: 600;
+        }
+        tr:hover {
+            background-color: #252525;
+        }
+        .empty-msg {
+            text-align: center;
+            color: #888;
+            font-style: italic;
         }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <!-- Add Staff Form -->
-        <h2>Add New Staff</h2>
-        <input type="text" id="staffId" placeholder="Staff ID (e.g. 003)">
-        <input type="text" id="staffName" placeholder="Full Name">
-        <input type="text" id="staffRole" placeholder="Role (e.g. Cloud Engineer)">
-        <button onclick="addStaff()">Register Staff</button>
-        <div id="staffStatus" class="status"></div>
+        <div class="form-section">
+            <!-- Add Staff Form -->
+            <h2>Add New Staff</h2>
+            <input type="text" id="staffId" placeholder="Staff ID (e.g. 003)">
+            <input type="text" id="staffName" placeholder="Full Name">
+            <input type="text" id="staffRole" placeholder="Role (e.g. Cloud Engineer)">
+            <button onclick="addStaff()">Register Staff</button>
+            <div id="staffStatus" class="status"></div>
 
-        <!-- Log Shift Form -->
-        <h2>Log Shift</h2>
-        <input type="text" id="shiftStaffId" placeholder="Staff ID (e.g. 003)">
-        <input type="date" id="shiftDate">
-        <select id="shiftType">
-            <option value="MORNING_SHIFT">Morning Shift</option>
-            <option value="AFTERNOON_SHIFT">Afternoon Shift</option>
-            <option value="NIGHT_SHIFT">Night Shift</option>
-        </select>
-        <input type="number" id="shiftHours" placeholder="Hours Worked">
-        <button onclick="logShift()">Log Hours</button>
-        <div id="shiftStatus" class="status"></div>
+            <!-- Log Shift Form -->
+            <h2>Log Shift</h2>
+            <input type="text" id="shiftStaffId" placeholder="Staff ID (e.g. 003)">
+            <input type="date" id="shiftDate">
+            <select id="shiftType">
+                <option value="MORNING_SHIFT">Morning Shift</option>
+                <option value="AFTERNOON_SHIFT">Afternoon Shift</option>
+                <option value="NIGHT_SHIFT">Night Shift</option>
+            </select>
+            <input type="number" id="shiftHours" placeholder="Hours Worked">
+            <button onclick="logShift()">Log Hours</button>
+            <div id="shiftStatus" class="status"></div>
+        </div>
+
+        <!-- Registered Staff Roster Table -->
+        <h2>Registered Staff</h2>
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Staff ID</th>
+                        <th>Full Name</th>
+                        <th>Role</th>
+                    </tr>
+                </thead>
+                <tbody id="staffTableBody">
+                    <tr><td colspan="3" class="empty-msg">Loading staff...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Logged Shifts Table -->
+        <h2>Logged Shifts</h2>
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Staff ID</th>
+                        <th>Full Name</th>
+                        <th>Role</th>
+                        <th>Date</th>
+                        <th>Shift</th>
+                        <th>Hours</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="shiftsTableBody">
+                    <tr><td colspan="7" class="empty-msg">Loading shifts...</td></tr>
+                </tbody>
+            </table>
+        </div>
     </div>
 
     <script>
         const API_URL = 'https://o80f898rp7.execute-api.eu-west-2.amazonaws.com';
 
+        function setStatus(elementId, message, type) {
+            const el = document.getElementById(elementId);
+            el.className = `status ${type}`;
+            el.innerText = message;
+        }
+
         async function addStaff() {
-            const statusEl = document.getElementById('staffStatus');
-            statusEl.innerText = "Registering...";
-            
+            const id = document.getElementById('staffId').value.trim();
+            const name = document.getElementById('staffName').value.trim();
+            const role = document.getElementById('staffRole').value.trim();
+
+            if (!id || !name || !role) {
+                setStatus('staffStatus', 'Please fill in Staff ID, Full Name, and Role.', 'error');
+                return;
+            }
+
+            setStatus('staffStatus', 'Registering...', 'loading');
+
             const data = {
-                id: document.getElementById('staffId').value,
-                name: document.getElementById('staffName').value,
-                skills: document.getElementById('staffRole').value
+                id: id,
+                staff_id: id,
+                name: name,
+                full_name: name,
+                role: role,
+                skills: role
             };
 
             try {
@@ -113,21 +212,42 @@
                     body: JSON.stringify(data)
                 });
                 const result = await response.json();
-                statusEl.innerText = result.message || "Success!";
+
+                if (!response.ok) {
+                    setStatus('staffStatus', result.error || result.message || 'Staff ID already exists.', 'error');
+                    return;
+                }
+
+                setStatus('staffStatus', result.message || 'Staff registered successfully!', 'success');
+                document.getElementById('staffId').value = '';
+                document.getElementById('staffName').value = '';
+                document.getElementById('staffRole').value = '';
+                loadDashboard();
             } catch (error) {
-                statusEl.innerText = "Error registering staff.";
+                setStatus('staffStatus', 'Network error registering staff.', 'error');
             }
         }
 
         async function logShift() {
-            const statusEl = document.getElementById('shiftStatus');
-            statusEl.innerText = "Logging shift...";
-            
+            const volId = document.getElementById('shiftStaffId').value.trim();
+            const date = document.getElementById('shiftDate').value;
+            const shiftType = document.getElementById('shiftType').value;
+            const hours = document.getElementById('shiftHours').value;
+
+            if (!volId || !date || !hours) {
+                setStatus('shiftStatus', 'Please enter Staff ID, Date, and Hours.', 'error');
+                return;
+            }
+
+            setStatus('shiftStatus', 'Logging shift...', 'loading');
+
             const data = {
-                vol_id: document.getElementById('shiftStaffId').value,
-                date: document.getElementById('shiftDate').value,
-                shift_id: document.getElementById('shiftType').value,
-                hours: Number(document.getElementById('shiftHours').value)
+                vol_id: volId,
+                staff_id: volId,
+                date: date,
+                shift_id: shiftType,
+                shift_type: shiftType,
+                hours: Number(hours)
             };
 
             try {
@@ -137,11 +257,73 @@
                     body: JSON.stringify(data)
                 });
                 const result = await response.json();
-                statusEl.innerText = result.message || "Success!";
+
+                if (!response.ok) {
+                    setStatus('shiftStatus', result.error || result.message || 'Staff ID not found in database.', 'error');
+                    return;
+                }
+
+                setStatus('shiftStatus', result.message || 'Shift logged successfully!', 'success');
+                document.getElementById('shiftStaffId').value = '';
+                document.getElementById('shiftHours').value = '';
+                loadDashboard();
             } catch (error) {
-                statusEl.innerText = "Error logging shift.";
+                setStatus('shiftStatus', 'Network error logging shift.', 'error');
             }
         }
+
+        async function loadDashboard() {
+            try {
+                const [staffRes, shiftsRes] = await Promise.all([
+                    fetch(`${API_URL}/volunteers`),
+                    fetch(`${API_URL}/shifts`)
+                ]);
+
+                if (staffRes.ok) {
+                    const staffData = await staffRes.json();
+                    const volunteers = staffData.volunteers || staffData || [];
+                    const staffBody = document.getElementById('staffTableBody');
+
+                    if (volunteers.length === 0) {
+                        staffBody.innerHTML = '<tr><td colspan="3" class="empty-msg">No staff registered yet.</td></tr>';
+                    } else {
+                        staffBody.innerHTML = volunteers.map(v => `
+                            <tr>
+                                <td>${v.staff_id || v.id || ''}</td>
+                                <td>${v.full_name || v.name || 'N/A'}</td>
+                                <td>${v.role || v.skills || 'N/A'}</td>
+                            </tr>
+                        `).join('');
+                    }
+                }
+
+                if (shiftsRes.ok) {
+                    const shiftsData = await shiftsRes.json();
+                    const shifts = shiftsData.shifts || shiftsData || [];
+                    const shiftsBody = document.getElementById('shiftsTableBody');
+
+                    if (shifts.length === 0) {
+                        shiftsBody.innerHTML = '<tr><td colspan="7" class="empty-msg">No shifts logged yet.</td></tr>';
+                    } else {
+                        shiftsBody.innerHTML = shifts.map(s => `
+                            <tr>
+                                <td>${s.staff_id || s.vol_id || ''}</td>
+                                <td>${s.full_name || s.name || 'N/A'}</td>
+                                <td>${s.role || s.skills || 'N/A'}</td>
+                                <td>${s.date || ''}</td>
+                                <td>${s.shift_type || s.shift_id || ''}</td>
+                                <td>${s.hours || 0}</td>
+                                <td>${s.status || 'LOGGED'}</td>
+                            </tr>
+                        `).join('');
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading dashboard tables:', error);
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', loadDashboard);
     </script>
 </body>
 </html>
