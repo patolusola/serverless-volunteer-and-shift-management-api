@@ -1,7 +1,14 @@
-# this create the gateway for the http api (the receptionist)
+# this creates the gateway for the http api (the receptionist) and adds a cors configuration to allow browsers communicate with it
 resource "aws_apigatewayv2_api" "http_api" {
   name          = "volunteer-api"
   protocol_type = "HTTP"
+
+  cors_configuration {
+    allow_origins = ["*"]
+    allow_methods = ["POST", "GET", "OPTIONS"]
+    allow_headers = ["content-type"]
+    max_age       = 300
+  }
 }
 
 # this code tells the receptionist (api) how to talk to the (lambda) robot (integration)
