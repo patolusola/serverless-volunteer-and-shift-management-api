@@ -132,6 +132,11 @@
                 <option value="NIGHT_SHIFT">Night Shift</option>
             </select>
             <input type="number" id="shiftHours" placeholder="Hours Worked">
+            <select id="shiftStatusSelect">
+                <option value="SCHEDULED">Scheduled</option>
+                <option value="IN_PROGRESS">In Progress</option>
+                <option value="COMPLETED" selected>Completed</option>
+            </select>
             <button onclick="logShift()">Log Hours</button>
             <div id="shiftStatus" class="status"></div>
         </div>
@@ -233,6 +238,7 @@
             const date = document.getElementById('shiftDate').value;
             const shiftType = document.getElementById('shiftType').value;
             const hours = document.getElementById('shiftHours').value;
+            const status = document.getElementById('shiftStatusSelect').value;
 
             if (!volId || !date || !hours) {
                 setStatus('shiftStatus', 'Please enter Staff ID, Date, and Hours.', 'error');
@@ -247,7 +253,8 @@
                 date: date,
                 shift_id: shiftType,
                 shift_type: shiftType,
-                hours: Number(hours)
+                hours: Number(hours),
+                status: status
             };
 
             try {

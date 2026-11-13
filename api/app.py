@@ -43,7 +43,7 @@ def lambda_handler(event, context):
     except json.JSONDecodeError:
         return response(400, {"error": "Invalid JSON payload"})
 
-    # Add new staff and block duplicate Staff IDs
+    # add new staff and block duplicate staff ids
     if method == "POST" and path.endswith("/volunteers"):
         staff_id = str(body.get("staff_id") or body.get("id") or "").strip().upper()
         full_name = str(body.get("full_name") or body.get("name") or "").strip()
@@ -73,7 +73,7 @@ def lambda_handler(event, context):
                 return response(409, {"error": f"Staff ID '{staff_id}' is already taken. Choose another ID."})
             raise
 
-    # Log shifts and reject unregistered Staff IDs
+    # log shifts and reject unregistered staff ids
     if method == "POST" and (path.endswith("/shifts") or path.endswith("/shifts/log")):
         staff_id = str(body.get("staff_id") or body.get("vol_id") or "").strip().upper()
         date = str(body.get("date", "")).strip()
@@ -86,7 +86,7 @@ def lambda_handler(event, context):
 
         pk = f"VOL#{staff_id}"
 
-        # Verify the volunteer profile exists first
+        # verify the volunteer profile exists before logging shift
         existing_staff = table.get_item(Key={"PK": pk, "SK": "PROFILE"}).get("Item")
         if not existing_staff:
             return response(404, {"error": f"Staff ID '{staff_id}' does not exist. Register the staff member first."})
@@ -106,35 +106,49 @@ def lambda_handler(event, context):
         )
         return response(201, {"message": f"Shift logged for {existing_staff.get('FullName')} ({staff_id})."})
 
-    # Get all registered staff (Staff ID, Full Name, Role, Skills)
+    # get all registered staff (staff id, full name, role)
     if method == "GET" and path.endswith("/volunteers"):
         result = table.scan(FilterExpression=Attr("SK").eq("PROFILE"))
-        staff_list = [
-            {
+        staff_list = []
+        for item in result.get("Items", []):
+            raw_skills = item.get("Skills", "")
+            fallback_role = ", ".join(raw_skills) if isinstance(raw_skills, list) else str(raw_skills)
+            staff_list.append({
                 "staff_id": item.get("StaffId") or item["PK"].replace("VOL#", ""),
-                "full_name": item.get("FullName", "N/A"),
-                "role": item.get("Role", "N/A"),
-                "skills": item.get("Skills", []),
-            }
-            for item in result.get("Items", [])
-        ]
+                "full_name": item.get("FullName") or item.get("Name") or "N/A",
+                "role": item.get("Role") or fallback_role or "N/A",
+                "skills": raw_skills,
+            })
         return response(200, {"volunteers": staff_list})
 
-    # Get all logged shifts
+    # get all logged shifts (with automatic profile lookup for older shift records)
     if method == "GET" and path.endswith("/shifts"):
-        result = table.scan(FilterExpression=Attr("SK").begins_with("SHIFT#"))
-        shifts_list = [
-            {
-                "staff_id": item.get("StaffId") or item["PK"].replace("VOL#", ""),
-                "full_name": item.get("FullName", "N/A"),
-                "role": item.get("Role", "N/A"),
-                "date": item.get("Date") or (item["SK"].split("#")[1] if len(item["SK"].split("#")) > 1 else ""),
-                "shift_type": item.get("ShiftType") or (item["SK"].split("#")[2] if len(item["SK"].split("#")) > 2 else ""),
-                "hours": item.get("Hours", 0),
-                "status": item.get("Status", "N/A"),
-            }
-            for item in result.get("Items", [])
-        ]
+        all_items = table.scan().get("Items", [])
+        profiles = {}
+        for item in all_items:
+            if item.get("SK") == "PROFILE":
+                profiles[item["PK"]] = item
+
+        shifts_list = []
+        for item in all_items:
+            if str(item.get("SK", "")).startswith("SHIFT#"):
+                pk = item["PK"]
+                profile = profiles.get(pk, {})
+                raw_skills = profile.get("Skills", "")
+                fallback_role = ", ".join(raw_skills) if isinstance(raw_skills, list) else str(raw_skills)
+
+                full_name = item.get("FullName") or profile.get("FullName") or profile.get("Name") or "N/A"
+                role = item.get("Role") or profile.get("Role") or fallback_role or "N/A"
+
+                shifts_list.append({
+                    "staff_id": item.get("StaffId") or pk.replace("VOL#", ""),
+                    "full_name": full_name,
+                    "role": role,
+                    "date": item.get("Date") or (item["SK"].split("#")[1] if len(item["SK"].split("#")) > 1 else ""),
+                    "shift_type": item.get("ShiftType") or (item["SK"].split("#")[2] if len(item["SK"].split("#")) > 2 else ""),
+                    "hours": item.get("Hours", 0),
+                    "status": item.get("Status", "SCHEDULED"),
+                })
         return response(200, {"shifts": shifts_list})
 
     return response(404, {"error": "Route not found"})
