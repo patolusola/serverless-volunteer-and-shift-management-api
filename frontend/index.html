@@ -16,22 +16,31 @@
         }
         .container {
             width: 100%;
-            max-width: 750px;
+            max-width: 800px;
         }
-        .form-section {
-            max-width: 500px;
-            margin: 0 auto;
+        .card {
+            background-color: #1a1a1a;
+            border: 1px solid #333;
+            padding: 30px;
+            border-radius: 8px;
+            margin-bottom: 30px;
         }
         h2 {
             color: #FFD700;
             border-bottom: 2px solid #333;
             padding-bottom: 10px;
-            margin-top: 40px;
+            margin-top: 20px;
+        }
+        label {
+            display: block;
+            margin-top: 15px;
+            font-size: 14px;
+            color: #aaa;
         }
         input, select {
             width: 100%;
             padding: 12px;
-            margin-top: 10px;
+            margin-top: 5px;
             background-color: #222;
             border: 1px solid #444;
             color: white;
@@ -57,127 +66,136 @@
         button:hover {
             background-color: #e6c200;
         }
+        .btn-logout {
+            background-color: #ef4444;
+            color: white;
+            width: auto;
+            padding: 8px 16px;
+            float: right;
+            margin-top: 0;
+        }
+        .btn-logout:hover {
+            background-color: #dc2626;
+        }
         .status {
             margin-top: 12px;
             padding: 10px;
             font-size: 14px;
             text-align: center;
-            min-height: 20px;
             border-radius: 4px;
             font-weight: 500;
         }
-        .status.success {
-            background-color: rgba(74, 222, 128, 0.15);
-            color: #4ade80;
-            border: 1px solid #4ade80;
-        }
-        .status.error {
-            background-color: rgba(248, 113, 113, 0.15);
-            color: #f87171;
-            border: 1px solid #f87171;
-        }
-        .status.loading {
-            color: #FFD700;
-        }
-        .table-wrapper {
-            overflow-x: auto;
-            margin-top: 15px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            background-color: #1a1a1a;
-            border: 1px solid #333;
-            font-size: 14px;
-        }
-        th, td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #333;
-        }
-        th {
-            background-color: #222;
-            color: #FFD700;
-            font-weight: 600;
-        }
-        tr:hover {
-            background-color: #252525;
-        }
-        .empty-msg {
-            text-align: center;
-            color: #888;
-            font-style: italic;
-        }
+        .status.success { background-color: rgba(74, 222, 128, 0.15); color: #4ade80; border: 1px solid #4ade80; }
+        .status.error { background-color: rgba(248, 113, 113, 0.15); color: #f87171; border: 1px solid #f87171; }
+        .status.loading { color: #FFD700; }
+        .table-wrapper { overflow-x: auto; margin-top: 15px; }
+        table { width: 100%; border-collapse: collapse; background-color: #1a1a1a; border: 1px solid #333; font-size: 14px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #333; }
+        th { background-color: #222; color: #FFD700; font-weight: 600; }
+        tr:hover { background-color: #252525; }
+        .empty-msg { text-align: center; color: #888; font-style: italic; }
+        .hidden { display: none !important; }
+        .user-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px; }
+        .user-header h2 { border: none; margin: 0; padding: 0; }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <div class="form-section">
-            <!-- Add Staff Form -->
-            <h2>Add New Staff</h2>
-            <input type="text" id="staffId" placeholder="Staff ID (e.g. 003)">
-            <input type="text" id="staffName" placeholder="Full Name">
-            <input type="text" id="staffRole" placeholder="Role (e.g. Cloud Engineer)">
-            <button onclick="addStaff()">Register Staff</button>
-            <div id="staffStatus" class="status"></div>
 
-            <!-- Log Shift Form -->
-            <h2>Log Shift</h2>
-            <input type="text" id="shiftStaffId" placeholder="Staff ID (e.g. 003)">
-            <input type="date" id="shiftDate">
-            <select id="shiftType">
-                <option value="MORNING_SHIFT">Morning Shift</option>
-                <option value="AFTERNOON_SHIFT">Afternoon Shift</option>
-                <option value="NIGHT_SHIFT">Night Shift</option>
-            </select>
-            <input type="number" id="shiftHours" placeholder="Hours Worked">
-            <select id="shiftStatusSelect">
-                <option value="SCHEDULED">Scheduled</option>
-                <option value="IN_PROGRESS">In Progress</option>
-                <option value="COMPLETED" selected>Completed</option>
-            </select>
-            <button onclick="logShift()">Log Hours</button>
-            <div id="shiftStatus" class="status"></div>
+        <!-- LOGIN VIEW -->
+        <div id="loginView" class="card">
+            <h2>Staff & Admin Portal Login</h2>
+            <input type="text" id="loginStaffId" placeholder="Staff ID (e.g. 001 or ADMIN)">
+            <input type="password" id="loginPassword" placeholder="Password">
+            <button onclick="login()">Login</button>
+            <div id="loginStatus" class="status"></div>
         </div>
 
-        <!-- Registered Staff Roster Table -->
-        <h2>Registered Staff</h2>
-        <div class="table-wrapper">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Staff ID</th>
-                        <th>Full Name</th>
-                        <th>Role</th>
-                    </tr>
-                </thead>
-                <tbody id="staffTableBody">
-                    <tr><td colspan="3" class="empty-msg">Loading staff...</td></tr>
-                </tbody>
-            </table>
+        <!-- DASHBOARD VIEW -->
+        <div id="dashboardView" class="hidden">
+            <div class="user-header">
+                <div>
+                    <h2 id="welcomeTitle" style="color: #FFD700; margin:0;">Welcome</h2>
+                    <p id="userRoleBadge" style="margin: 5px 0 0 0; color: #aaa; font-size: 13px;"></p>
+                </div>
+                <button class="btn-logout" onclick="logout()">Logout</button>
+            </div>
+
+            <!-- ADMIN SECTION: Add Staff -->
+            <div id="adminSection" class="card hidden">
+                <h2>Add New Staff Member</h2>
+                <input type="text" id="staffId" placeholder="Staff ID (e.g. 003)">
+                <input type="text" id="staffName" placeholder="Full Name">
+                <input type="text" id="staffRole" placeholder="Role (e.g. Cloud Engineer, Admin)">
+                <input type="password" id="staffPassword" placeholder="Initial Password">
+                <button onclick="addStaff()">Register Staff</button>
+                <div id="staffStatus" class="status"></div>
+            </div>
+
+            <!-- Log Shift Form (Available to all or admin) -->
+            <div class="card">
+                <h2>Log Shift</h2>
+                <input type="text" id="shiftStaffId" placeholder="Staff ID">
+                <input type="date" id="shiftDate">
+                <select id="shiftType">
+                    <option value="MORNING_SHIFT">Morning Shift</option>
+                    <option value="AFTERNOON_SHIFT">Afternoon Shift</option>
+                    <option value="NIGHT_SHIFT">Night Shift</option>
+                </select>
+                <input type="number" id="shiftHours" placeholder="Hours Worked">
+                <select id="shiftStatusSelect">
+                    <option value="SCHEDULED">Scheduled</option>
+                    <option value="IN_PROGRESS">In Progress</option>
+                    <option value="COMPLETED" selected>Completed</option>
+                </select>
+                <button onclick="logShift()">Log Hours</button>
+                <div id="shiftStatus" class="status"></div>
+            </div>
+
+            <!-- Staff Roster Table (Admin Only) -->
+            <div id="rosterCard" class="card">
+                <h2>Registered Staff Roster</h2>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Staff ID</th>
+                                <th>Full Name</th>
+                                <th>Role</th>
+                            </tr>
+                        </thead>
+                        <tbody id="staffTableBody">
+                            <tr><td colspan="3" class="empty-msg">Loading staff...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Shifts Table (Filtered for Staff, Full for Admin) -->
+            <div class="card">
+                <h2 id="shiftsTableHeader">Logged Shifts</h2>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Staff ID</th>
+                                <th>Full Name</th>
+                                <th>Role</th>
+                                <th>Date</th>
+                                <th>Shift</th>
+                                <th>Hours</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="shiftsTableBody">
+                            <tr><td colspan="7" class="empty-msg">Loading shifts...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
 
-        <!-- Logged Shifts Table -->
-        <h2>Logged Shifts</h2>
-        <div class="table-wrapper">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Staff ID</th>
-                        <th>Full Name</th>
-                        <th>Role</th>
-                        <th>Date</th>
-                        <th>Shift</th>
-                        <th>Hours</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody id="shiftsTableBody">
-                    <tr><td colspan="7" class="empty-msg">Loading shifts...</td></tr>
-                </tbody>
-            </table>
-        </div>
     </div>
 
     <script>
@@ -189,148 +207,183 @@
             el.innerText = message;
         }
 
+        // Check existing session on load
+        window.addEventListener('DOMContentLoaded', () => {
+            const session = sessionStorage.getItem('user_session');
+            if (session) {
+                const user = JSON.parse(session);
+                showDashboard(user);
+            }
+        });
+
+        async function login() {
+            const staffId = document.getElementById('loginStaffId').value.trim();
+            const password = document.getElementById('loginPassword').value;
+
+            if (!staffId || !password) {
+                setStatus('loginStatus', 'Please enter Staff ID and password.', 'error');
+                return;
+            }
+
+            setStatus('loginStatus', 'Authenticating...', 'loading');
+
+            try {
+                const response = await fetch(`${API_URL}/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ staff_id: staffId, password: password })
+                });
+                const result = await response.json();
+
+                if (!response.ok) {
+                    setStatus('loginStatus', result.error || 'Invalid credentials.', 'error');
+                    return;
+                }
+
+                sessionStorage.setItem('user_session', JSON.stringify(result));
+                showDashboard(result);
+            } catch (error) {
+                setStatus('loginStatus', 'Network error during login.', 'error');
+            }
+        }
+
+        function logout() {
+            sessionStorage.removeItem('user_session');
+            document.getElementById('dashboardView').classList.add('hidden');
+            document.getElementById('loginView').classList.remove('hidden');
+            document.getElementById('loginStaffId').value = '';
+            document.getElementById('loginPassword').value = '';
+            setStatus('loginStatus', '', '');
+        }
+
+        function showDashboard(user) {
+            document.getElementById('loginView').classList.add('hidden');
+            document.getElementById('dashboardView').classList.remove('hidden');
+
+            document.getElementById('welcomeTitle').innerText = `Welcome, ${user.full_name}`;
+            document.getElementById('userRoleBadge').innerText = `Role: ${user.role} | Staff ID: ${user.staff_id}`;
+
+            // Pre-fill shift staff ID if standard staff
+            if (user.role !== 'ADMIN') {
+                document.getElementById('shiftStaffId').value = user.staff_id;
+                document.getElementById('shiftStaffId').readOnly = true;
+                document.getElementById('adminSection').classList.add('hidden');
+                document.getElementById('rosterCard').classList.add('hidden');
+                document.getElementById('shiftsTableHeader').innerText = 'My Shift History';
+            } else {
+                document.getElementById('adminSection').classList.remove('hidden');
+                document.getElementById('rosterCard').classList.remove('hidden');
+                document.getElementById('shiftsTableHeader').innerText = 'All Logged Shifts (Admin Master View)';
+            }
+
+            loadDashboardData(user);
+        }
+
         async function addStaff() {
             const id = document.getElementById('staffId').value.trim();
             const name = document.getElementById('staffName').value.trim();
             const role = document.getElementById('staffRole').value.trim();
+            const password = document.getElementById('staffPassword').value.trim();
 
-            if (!id || !name || !role) {
-                setStatus('staffStatus', 'Please fill in Staff ID, Full Name, and Role.', 'error');
+            if (!id || !name || !role || !password) {
+                setStatus('staffStatus', 'All fields are required to register staff.', 'error');
                 return;
             }
 
             setStatus('staffStatus', 'Registering...', 'loading');
 
-            const data = {
-                id: id,
-                staff_id: id,
-                name: name,
-                full_name: name,
-                role: role,
-                skills: role
-            };
-
             try {
                 const response = await fetch(`${API_URL}/volunteers`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
+                    body: JSON.stringify({ staff_id: id, full_name: name, role: role, password: password })
                 });
                 const result = await response.json();
 
                 if (!response.ok) {
-                    setStatus('staffStatus', result.error || result.message || 'Staff ID already exists.', 'error');
+                    setStatus('staffStatus', result.error || 'Error registering staff.', 'error');
                     return;
                 }
 
-                setStatus('staffStatus', result.message || 'Staff registered successfully!', 'success');
+                setStatus('staffStatus', result.message, 'success');
                 document.getElementById('staffId').value = '';
                 document.getElementById('staffName').value = '';
                 document.getElementById('staffRole').value = '';
-                loadDashboard();
+                document.getElementById('staffPassword').value = '';
+                loadDashboardData(JSON.parse(sessionStorage.getItem('user_session')));
             } catch (error) {
-                setStatus('staffStatus', 'Network error registering staff.', 'error');
+                setStatus('staffStatus', 'Network error.', 'error');
             }
         }
 
         async function logShift() {
-            const volId = document.getElementById('shiftStaffId').value.trim();
+            const session = JSON.parse(sessionStorage.getItem('user_session'));
+            const volId = session.role === 'ADMIN' ? document.getElementById('shiftStaffId').value.trim() : session.staff_id;
             const date = document.getElementById('shiftDate').value;
             const shiftType = document.getElementById('shiftType').value;
             const hours = document.getElementById('shiftHours').value;
             const status = document.getElementById('shiftStatusSelect').value;
 
             if (!volId || !date || !hours) {
-                setStatus('shiftStatus', 'Please enter Staff ID, Date, and Hours.', 'error');
+                setStatus('shiftStatus', 'Please enter all required shift fields.', 'error');
                 return;
             }
 
             setStatus('shiftStatus', 'Logging shift...', 'loading');
 
-            const data = {
-                vol_id: volId,
-                staff_id: volId,
-                date: date,
-                shift_id: shiftType,
-                shift_type: shiftType,
-                hours: Number(hours),
-                status: status
-            };
-
             try {
                 const response = await fetch(`${API_URL}/shifts/log`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
+                    body: JSON.stringify({ staff_id: volId, date: date, shift_type: shiftType, hours: Number(hours), status: status })
                 });
                 const result = await response.json();
 
                 if (!response.ok) {
-                    setStatus('shiftStatus', result.error || result.message || 'Staff ID not found in database.', 'error');
+                    setStatus('shiftStatus', result.error || 'Error logging shift.', 'error');
                     return;
                 }
 
-                setStatus('shiftStatus', result.message || 'Shift logged successfully!', 'success');
-                document.getElementById('shiftStaffId').value = '';
+                setStatus('shiftStatus', result.message, 'success');
+                if(session.role === 'ADMIN') document.getElementById('shiftStaffId').value = '';
                 document.getElementById('shiftHours').value = '';
-                loadDashboard();
+                loadDashboardData(session);
             } catch (error) {
                 setStatus('shiftStatus', 'Network error logging shift.', 'error');
             }
         }
 
-        async function loadDashboard() {
+        async function loadDashboardData(user) {
             try {
+                let shiftsUrl = `${API_URL}/shifts`;
+                if (user.role !== 'ADMIN') {
+                    shiftsUrl += `?staff_id=${user.staff_id}`;
+                }
+
                 const [staffRes, shiftsRes] = await Promise.all([
-                    fetch(`${API_URL}/volunteers`),
-                    fetch(`${API_URL}/shifts`)
+                    user.role === 'ADMIN' ? fetch(`${API_URL}/volunteers`) : Promise.resolve(null),
+                    fetch(shiftsUrl)
                 ]);
 
-                if (staffRes.ok) {
+                if (staffRes && staffRes.ok) {
                     const staffData = await staffRes.json();
-                    const volunteers = staffData.volunteers || staffData || [];
+                    const volunteers = staffData.volunteers || [];
                     const staffBody = document.getElementById('staffTableBody');
-
-                    if (volunteers.length === 0) {
-                        staffBody.innerHTML = '<tr><td colspan="3" class="empty-msg">No staff registered yet.</td></tr>';
-                    } else {
-                        staffBody.innerHTML = volunteers.map(v => `
-                            <tr>
-                                <td>${v.staff_id || v.id || ''}</td>
-                                <td>${v.full_name || v.name || 'N/A'}</td>
-                                <td>${v.role || v.skills || 'N/A'}</td>
-                            </tr>
-                        `).join('');
-                    }
+                    staffBody.innerHTML = volunteers.length === 0 ? '<tr><td colspan="3" class="empty-msg">No staff registered.</td></tr>' :
+                        volunteers.map(v => `<tr><td>${v.staff_id}</td><td>${v.full_name}</td><td>${v.role}</td></tr>`).join('');
                 }
 
                 if (shiftsRes.ok) {
                     const shiftsData = await shiftsRes.json();
-                    const shifts = shiftsData.shifts || shiftsData || [];
+                    const shifts = shiftsData.shifts || [];
                     const shiftsBody = document.getElementById('shiftsTableBody');
-
-                    if (shifts.length === 0) {
-                        shiftsBody.innerHTML = '<tr><td colspan="7" class="empty-msg">No shifts logged yet.</td></tr>';
-                    } else {
-                        shiftsBody.innerHTML = shifts.map(s => `
-                            <tr>
-                                <td>${s.staff_id || s.vol_id || ''}</td>
-                                <td>${s.full_name || s.name || 'N/A'}</td>
-                                <td>${s.role || s.skills || 'N/A'}</td>
-                                <td>${s.date || ''}</td>
-                                <td>${s.shift_type || s.shift_id || ''}</td>
-                                <td>${s.hours || 0}</td>
-                                <td>${s.status || 'LOGGED'}</td>
-                            </tr>
-                        `).join('');
-                    }
+                    shiftsBody.innerHTML = shifts.length === 0 ? '<tr><td colspan="7" class="empty-msg">No shifts found.</td></tr>' :
+                        shifts.map(s => `<tr><td>${s.staff_id}</td><td>${s.full_name}</td><td>${s.role}</td><td>${s.date}</td><td>${s.shift_type}</td><td>${s.hours}</td><td>${s.status}</td></tr>`).join('');
                 }
             } catch (error) {
-                console.error('Error loading dashboard tables:', error);
+                console.error('Error loading data:', error);
             }
         }
-
-        window.addEventListener('DOMContentLoaded', loadDashboard);
     </script>
 </body>
 </html>

@@ -1,3 +1,4 @@
+import hashlib
 import json
 import os
 from decimal import Decimal
@@ -31,9 +32,14 @@ def response(status_code, body):
     }
 
 
+def hash_password(password):
+    return hashlib.sha256(password.encode("utf-8")).hexdigest()
+
+
 def lambda_handler(event, context):
     method = event.get("requestContext", {}).get("http", {}).get("method", "")
     path = event.get("rawPath", "")
+    query_params = event.get("queryStringParameters") or {}
 
     if method == "OPTIONS":
         return response(200, {"message": "OK"})
@@ -43,15 +49,37 @@ def lambda_handler(event, context):
     except json.JSONDecodeError:
         return response(400, {"error": "Invalid JSON payload"})
 
-    # add new staff and block duplicate staff ids
+    # this is the login route
+    if method == "POST" and (path.endswith("/login") or path == "/login"):
+        staff_id = str(body.get("staff_id", "")).strip().upper()
+        password = str(body.get("password", ""))
+
+        if not staff_id or not password:
+            return response(400, {"error": "Staff ID and password are required."})
+
+        pk = f"VOL#{staff_id}"
+        staff = table.get_item(Key={"PK": pk, "SK": "PROFILE"}).get("Item")
+
+        if not staff or staff.get("Password") != hash_password(password):
+            return response(401, {"error": "Invalid Staff ID or Password."})
+
+        return response(200, {
+            "message": "Login successful",
+            "staff_id": staff.get("StaffId"),
+            "full_name": staff.get("FullName"),
+            "role": staff.get("Role", "STAFF")
+        })
+
+    # staff registration code added password and role)
     if method == "POST" and path.endswith("/volunteers"):
         staff_id = str(body.get("staff_id") or body.get("id") or "").strip().upper()
         full_name = str(body.get("full_name") or body.get("name") or "").strip()
-        role = str(body.get("role") or body.get("skills") or "").strip()
+        role = str(body.get("role") or body.get("skills") or "STAFF").strip().upper()
+        password = str(body.get("password", "password123")).strip()  # default temp password if omitted
         skills = body.get("skills", [])
 
-        if not staff_id or not full_name or not role:
-            return response(400, {"error": "staff_id, full_name, and role are required."})
+        if not staff_id or not full_name:
+            return response(400, {"error": "staff_id and full_name are required."})
 
         pk = f"VOL#{staff_id}"
 
@@ -63,17 +91,18 @@ def lambda_handler(event, context):
                     "StaffId": staff_id,
                     "FullName": full_name,
                     "Role": role,
+                    "Password": hash_password(password),
                     "Skills": skills,
                 },
                 ConditionExpression="attribute_not_exists(PK)",
             )
-            return response(201, {"message": f"Staff {staff_id} ({full_name}) registered successfully."})
+            return response(201, {"message": f"Staff {staff_id} ({full_name}) registered as {role}."})
         except ClientError as e:
             if e.response["Error"]["Code"] == "ConditionalCheckFailedException":
-                return response(409, {"error": f"Staff ID '{staff_id}' is already taken. Choose another ID."})
+                return response(409, {"error": f"Staff ID '{staff_id}' is already taken."})
             raise
 
-    # log shifts and reject unregistered staff ids
+    # log shift code
     if method == "POST" and (path.endswith("/shifts") or path.endswith("/shifts/log")):
         staff_id = str(body.get("staff_id") or body.get("vol_id") or "").strip().upper()
         date = str(body.get("date", "")).strip()
@@ -85,11 +114,9 @@ def lambda_handler(event, context):
             return response(400, {"error": "staff_id, date, shift_type, and hours are required."})
 
         pk = f"VOL#{staff_id}"
-
-        # verify the volunteer profile exists before logging shift
         existing_staff = table.get_item(Key={"PK": pk, "SK": "PROFILE"}).get("Item")
         if not existing_staff:
-            return response(404, {"error": f"Staff ID '{staff_id}' does not exist. Register the staff member first."})
+            return response(404, {"error": f"Staff ID '{staff_id}' does not exist."})
 
         table.put_item(
             Item={
@@ -106,46 +133,49 @@ def lambda_handler(event, context):
         )
         return response(201, {"message": f"Shift logged for {existing_staff.get('FullName')} ({staff_id})."})
 
-    # get all registered staff (staff id, full name, role)
+    # this gets volunteers - giving admin all access and personal profile for staff
     if method == "GET" and path.endswith("/volunteers"):
         result = table.scan(FilterExpression=Attr("SK").eq("PROFILE"))
         staff_list = []
         for item in result.get("Items", []):
-            raw_skills = item.get("Skills", "")
-            fallback_role = ", ".join(raw_skills) if isinstance(raw_skills, list) else str(raw_skills)
             staff_list.append({
                 "staff_id": item.get("StaffId") or item["PK"].replace("VOL#", ""),
-                "full_name": item.get("FullName") or item.get("Name") or "N/A",
-                "role": item.get("Role") or fallback_role or "N/A",
-                "skills": raw_skills,
+                "full_name": item.get("FullName") or "N/A",
+                "role": item.get("Role", "STAFF"),
             })
         return response(200, {"volunteers": staff_list})
 
-    # get all logged shifts (with automatic profile lookup for older shift records)
+    # this shows shift filtered by staff_id or everyone for admin
     if method == "GET" and path.endswith("/shifts"):
-        all_items = table.scan().get("Items", [])
-        profiles = {}
-        for item in all_items:
-            if item.get("SK") == "PROFILE":
-                profiles[item["PK"]] = item
+        filter_staff_id = query_params.get("staff_id")
+        
+        if filter_staff_id:
+            # queries specific staff table for personal view
+            result = table.query(
+                KeyConditionExpression="PK = :pk",
+                ExpressionAttributeValues={":pk": f"VOL#{filter_staff_id.upper()}"}
+            )
+            items = result.get("Items", [])
+        else:
+            # queries all items for admin view
+            items = table.scan().get("Items", [])
 
+        profiles = {item["PK"]: item for item in items if item.get("SK") == "PROFILE"}
+        
         shifts_list = []
-        for item in all_items:
+        for item in items:
             if str(item.get("SK", "")).startswith("SHIFT#"):
                 pk = item["PK"]
                 profile = profiles.get(pk, {})
-                raw_skills = profile.get("Skills", "")
-                fallback_role = ", ".join(raw_skills) if isinstance(raw_skills, list) else str(raw_skills)
-
-                full_name = item.get("FullName") or profile.get("FullName") or profile.get("Name") or "N/A"
-                role = item.get("Role") or profile.get("Role") or fallback_role or "N/A"
+                full_name = item.get("FullName") or profile.get("FullName") or "N/A"
+                role = item.get("Role") or profile.get("Role") or "STAFF"
 
                 shifts_list.append({
                     "staff_id": item.get("StaffId") or pk.replace("VOL#", ""),
                     "full_name": full_name,
                     "role": role,
-                    "date": item.get("Date") or (item["SK"].split("#")[1] if len(item["SK"].split("#")) > 1 else ""),
-                    "shift_type": item.get("ShiftType") or (item["SK"].split("#")[2] if len(item["SK"].split("#")) > 2 else ""),
+                    "date": item.get("Date") or item["SK"].split("#")[1],
+                    "shift_type": item.get("ShiftType") or item["SK"].split("#")[2],
                     "hours": item.get("Hours", 0),
                     "status": item.get("Status", "SCHEDULED"),
                 })

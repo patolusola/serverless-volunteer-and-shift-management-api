@@ -26,6 +26,12 @@ resource "aws_apigatewayv2_route" "post_volunteer" {
   target    = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"
 }
 
+resource "aws_apigatewayv2_route" "post_login" {
+  api_id    = aws_apigatewayv2_api.http_api.id
+  route_key = "POST /login"
+  target    = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"
+}
+
 resource "aws_apigatewayv2_route" "post_shift" {
   api_id    = aws_apigatewayv2_api.http_api.id
   route_key = "POST /shifts/log"
