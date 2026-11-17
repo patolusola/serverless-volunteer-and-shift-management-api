@@ -10,7 +10,7 @@ dynamodb = boto3.resource("dynamodb")
 table = dynamodb.Table(os.environ.get("TABLE_NAME", "VolunteerManagement"))
 
 CORS_HEADERS = {
-    "Access-Control-Allow-Origin": "https://d1ue1aryz7nwkm.cloudfront.net",
+    "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "Content-Type,Authorization",
     "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
     "Content-Type": "application/json",

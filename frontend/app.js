@@ -163,43 +163,27 @@ async function loadDashboardData(user) {
             fetch(shiftsUrl)
         ]);
 
-        if (staffRes && staffRes.ok) {
-            const staffData = await staffRes.json();
-            const volunteers = staffData.volunteers || [];
-            const staffBody = document.getElementById('staffTableBody');
-            staffBody.innerHTML = volunteers.length === 0 ? '<tr><td colspan="4" class="empty-msg">No staff registered.</td></tr>' :
-                volunteers.map(v => `
-                    <tr>
-                        <td>${v.staff_id}</td>
-                        <td>${v.full_name}</td>
-                        <td>${v.role}</td>
-                        <td>
-                            <button onclick="toggleStaffStatus('${v.staff_id}', ${v.is_active === false ? 'true' : 'false'})" style="padding: 6px 12px; margin:0; background-color: ${v.is_active === false ? '#22c55e' : '#ef4444'}; color: white; font-size: 12px; width: auto;">
-                                ${v.is_active === false ? 'Activate' : 'Deactivate'}
-                            </button>
-                        </td>
-                    </tr>
-                `).join('');
-        }
-
-        if (staffRes && staffRes.ok) {
-            const staffData = await staffRes.json();
-            const volunteers = staffData.volunteers || [];
-            const staffBody = document.getElementById('staffTableBody');
-            staffBody.innerHTML = volunteers.length === 0 ? '<tr><td colspan="4" class="empty-msg">No staff registered.</td></tr>' :
-                volunteers.map(v => `
-                    <tr>
-                        <td>${v.staff_id}</td>
-                        <td>${v.full_name}</td>
-                        <td>${v.role}</td>
-                        <td>
-                            <button onclick="resetStaffPassword('${v.staff_id}')" style="padding: 4px 8px; margin:0 4px 0 0; background-color: #3b82f6; color: white; font-size: 11px; width: auto;">Reset Pwd</button>
-                            <button onclick="toggleStaffStatus('${v.staff_id}', ${v.is_active === false ? 'true' : 'false'})" style="padding: 4px 8px; margin:0; background-color: ${v.is_active === false ? '#22c55e' : '#ef4444'}; color: white; font-size: 11px; width: auto;">
-                                ${v.is_active === false ? 'Activate' : 'Deactivate'}
-                            </button>
-                        </td>
-                    </tr>
-                `).join('');
+        if (staffRes) {
+            if (staffRes.ok) {
+                const staffData = await staffRes.json();
+                const volunteers = staffData.volunteers || [];
+                const staffBody = document.getElementById('staffTableBody');
+                staffBody.innerHTML = volunteers.length === 0 ? '<tr><td colspan="4" class="empty-msg">No staff registered.</td></tr>' :
+                    volunteers.map(v => `
+                        <tr>
+                            <td>${v.staff_id}</td>
+                            <td>${v.full_name}</td>
+                            <td>${v.role}</td>
+                            <td>
+                                <button onclick="toggleStaffStatus('${v.staff_id}', ${v.is_active === false ? 'true' : 'false'})" style="padding: 6px 12px; margin:0; background-color: ${v.is_active === false ? '#22c55e' : '#ef4444'}; color: white; font-size: 12px; width: auto;">
+                                    ${v.is_active === false ? 'Activate' : 'Deactivate'}
+                                </button>
+                            </td>
+                        </tr>
+                    `).join('');
+            } else {
+                console.error("Failed to load staff roster, status:", staffRes.status);
+            }
         }
 
         if (shiftsRes.ok) {
@@ -208,6 +192,9 @@ async function loadDashboardData(user) {
             const shiftsBody = document.getElementById('shiftsTableBody');
             shiftsBody.innerHTML = shifts.length === 0 ? '<tr><td colspan="7" class="empty-msg">No shifts found.</td></tr>' :
                 shifts.map(s => `<tr><td>${s.staff_id}</td><td>${s.full_name}</td><td>${s.role}</td><td>${s.date}</td><td>${s.shift_type}</td><td>${s.hours}</td><td>${s.status}</td></tr>`).join('');
+        } else {
+            console.error("Failed to load shifts, status:", shiftsRes.status);
+            document.getElementById('shiftsTableBody').innerHTML = '<tr><td colspan="7" class="empty-msg" style="color: #f87171;">Error loading shifts.</td></tr>';
         }
     } catch (error) {
         console.error('Error loading data:', error);
