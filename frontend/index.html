@@ -4,106 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PAT's Shift Manager</title>
-    <style>
-        body {
-            background-color: #121212;
-            color: #ffffff;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            display: flex;
-            justify-content: center;
-            padding: 40px 20px;
-            margin: 0;
-        }
-        .container {
-            width: 100%;
-            max-width: 800px;
-        }
-        .card {
-            background-color: #1a1a1a;
-            border: 1px solid #333;
-            padding: 30px;
-            border-radius: 8px;
-            margin-bottom: 30px;
-        }
-        h2 {
-            color: #FFD700;
-            border-bottom: 2px solid #333;
-            padding-bottom: 10px;
-            margin-top: 20px;
-        }
-        label {
-            display: block;
-            margin-top: 15px;
-            font-size: 14px;
-            color: #aaa;
-        }
-        input, select {
-            width: 100%;
-            padding: 12px;
-            margin-top: 5px;
-            background-color: #222;
-            border: 1px solid #444;
-            color: white;
-            border-radius: 4px;
-            box-sizing: border-box;
-        }
-        input:focus, select:focus {
-            outline: none;
-            border-color: #FFD700;
-        }
-        button {
-            width: 100%;
-            padding: 12px;
-            margin-top: 20px;
-            background-color: #FFD700;
-            color: #121212;
-            border: none;
-            border-radius: 4px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        button:hover {
-            background-color: #e6c200;
-        }
-        .btn-logout {
-            background-color: #ef4444;
-            color: white;
-            width: auto;
-            padding: 8px 16px;
-            float: right;
-            margin-top: 0;
-        }
-        .btn-logout:hover {
-            background-color: #dc2626;
-        }
-        .status {
-            margin-top: 12px;
-            padding: 10px;
-            font-size: 14px;
-            text-align: center;
-            border-radius: 4px;
-            font-weight: 500;
-        }
-        .status.success { background-color: rgba(74, 222, 128, 0.15); color: #4ade80; border: 1px solid #4ade80; }
-        .status.error { background-color: rgba(248, 113, 113, 0.15); color: #f87171; border: 1px solid #f87171; }
-        .status.loading { color: #FFD700; }
-        .table-wrapper { overflow-x: auto; margin-top: 15px; }
-        table { width: 100%; border-collapse: collapse; background-color: #1a1a1a; border: 1px solid #333; font-size: 14px; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #333; }
-        th { background-color: #222; color: #FFD700; font-weight: 600; }
-        tr:hover { background-color: #252525; }
-        .empty-msg { text-align: center; color: #888; font-style: italic; }
-        .hidden { display: none !important; }
-        .user-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px; }
-        .user-header h2 { border: none; margin: 0; padding: 0; }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
     <div class="container">
 
-        <!-- LOGIN VIEW -->
+        <!-- login page -->
         <div id="loginView" class="card">
             <h2>Staff & Admin Portal Login</h2>
             <input type="text" id="loginStaffId" placeholder="Staff ID (e.g. 001 or ADMIN)">
@@ -112,7 +19,7 @@
             <div id="loginStatus" class="status"></div>
         </div>
 
-        <!-- DASHBOARD VIEW -->
+        <!-- dashboard view -->
         <div id="dashboardView" class="hidden">
             <div class="user-header">
                 <div>
@@ -122,7 +29,7 @@
                 <button class="btn-logout" onclick="logout()">Logout</button>
             </div>
 
-            <!-- ADMIN SECTION: Add Staff -->
+            <!-- add staff - admin access oonly -->
             <div id="adminSection" class="card hidden">
                 <h2>Add New Staff Member</h2>
                 <input type="text" id="staffId" placeholder="Staff ID (e.g. 003)">
@@ -133,7 +40,7 @@
                 <div id="staffStatus" class="status"></div>
             </div>
 
-            <!-- Log Shift Form (Available to all or admin) -->
+            <!-- log shift form -->
             <div class="card">
                 <h2>Log Shift</h2>
                 <input type="text" id="shiftStaffId" placeholder="Staff ID">
@@ -153,7 +60,7 @@
                 <div id="shiftStatus" class="status"></div>
             </div>
 
-            <!-- Staff Roster Table (Admin Only) -->
+            <!-- staff table (admin only access) -->
             <div id="rosterCard" class="card">
                 <h2>Registered Staff Roster</h2>
                 <div class="table-wrapper">
@@ -163,16 +70,17 @@
                                 <th>Staff ID</th>
                                 <th>Full Name</th>
                                 <th>Role</th>
+                                <th>Action</th>
                             </tr>
                         </thead>
                         <tbody id="staffTableBody">
-                            <tr><td colspan="3" class="empty-msg">Loading staff...</td></tr>
+                            <tr><td colspan="4" class="empty-msg">Loading staff...</td></tr>
                         </tbody>
                     </table>
                 </div>
             </div>
 
-            <!-- Shifts Table (Filtered for Staff, Full for Admin) -->
+            <!-- shift table -->
             <div class="card">
                 <h2 id="shiftsTableHeader">Logged Shifts</h2>
                 <div class="table-wrapper">
@@ -198,230 +106,7 @@
 
     </div>
 
-    <script>
-        const API_URL = 'https://o80f898rp7.execute-api.eu-west-2.amazonaws.com';
+    <script>src="app.js"</script>
 
-        function setStatus(elementId, message, type) {
-            const el = document.getElementById(elementId);
-            el.className = `status ${type}`;
-            el.innerText = message;
-        }
-
-        // Check existing session on load
-        window.addEventListener('DOMContentLoaded', () => {
-            const session = sessionStorage.getItem('user_session');
-            if (session) {
-                const user = JSON.parse(session);
-                showDashboard(user);
-            }
-        });
-
-        async function login() {
-            const staffId = document.getElementById('loginStaffId').value.trim();
-            const password = document.getElementById('loginPassword').value;
-
-            if (!staffId || !password) {
-                setStatus('loginStatus', 'Please enter Staff ID and password.', 'error');
-                return;
-            }
-
-            setStatus('loginStatus', 'Authenticating...', 'loading');
-
-            try {
-                const response = await fetch(`${API_URL}/login`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ staff_id: staffId, password: password })
-                });
-                const result = await response.json();
-
-                if (!response.ok) {
-                    setStatus('loginStatus', result.error || 'Invalid credentials.', 'error');
-                    return;
-                }
-
-                sessionStorage.setItem('user_session', JSON.stringify(result));
-                showDashboard(result);
-            } catch (error) {
-                setStatus('loginStatus', 'Network error during login.', 'error');
-            }
-        }
-
-        function logout() {
-            sessionStorage.removeItem('user_session');
-            document.getElementById('dashboardView').classList.add('hidden');
-            document.getElementById('loginView').classList.remove('hidden');
-            document.getElementById('loginStaffId').value = '';
-            document.getElementById('loginPassword').value = '';
-            setStatus('loginStatus', '', '');
-        }
-
-        function showDashboard(user) {
-            document.getElementById('loginView').classList.add('hidden');
-            document.getElementById('dashboardView').classList.remove('hidden');
-
-            document.getElementById('welcomeTitle').innerText = `Welcome, ${user.full_name}`;
-            document.getElementById('userRoleBadge').innerText = `Role: ${user.role} | Staff ID: ${user.staff_id}`;
-
-            // Pre-fill shift staff ID if standard staff
-            if (user.role !== 'ADMIN') {
-                document.getElementById('shiftStaffId').value = user.staff_id;
-                document.getElementById('shiftStaffId').readOnly = true;
-                document.getElementById('adminSection').classList.add('hidden');
-                document.getElementById('rosterCard').classList.add('hidden');
-                document.getElementById('shiftsTableHeader').innerText = 'My Shift History';
-            } else {
-                document.getElementById('adminSection').classList.remove('hidden');
-                document.getElementById('rosterCard').classList.remove('hidden');
-                document.getElementById('shiftsTableHeader').innerText = 'All Logged Shifts (Admin Master View)';
-            }
-
-            loadDashboardData(user);
-        }
-
-        async function addStaff() {
-            const id = document.getElementById('staffId').value.trim();
-            const name = document.getElementById('staffName').value.trim();
-            const role = document.getElementById('staffRole').value.trim();
-            const password = document.getElementById('staffPassword').value.trim();
-
-            if (!id || !name || !role || !password) {
-                setStatus('staffStatus', 'All fields are required to register staff.', 'error');
-                return;
-            }
-
-            setStatus('staffStatus', 'Registering...', 'loading');
-
-            try {
-                const response = await fetch(`${API_URL}/volunteers`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ staff_id: id, full_name: name, role: role, password: password })
-                });
-                const result = await response.json();
-
-                if (!response.ok) {
-                    setStatus('staffStatus', result.error || 'Error registering staff.', 'error');
-                    return;
-                }
-
-                setStatus('staffStatus', result.message, 'success');
-                document.getElementById('staffId').value = '';
-                document.getElementById('staffName').value = '';
-                document.getElementById('staffRole').value = '';
-                document.getElementById('staffPassword').value = '';
-                loadDashboardData(JSON.parse(sessionStorage.getItem('user_session')));
-            } catch (error) {
-                setStatus('staffStatus', 'Network error.', 'error');
-            }
-        }
-
-        async function logShift() {
-            const session = JSON.parse(sessionStorage.getItem('user_session'));
-            const volId = session.role === 'ADMIN' ? document.getElementById('shiftStaffId').value.trim() : session.staff_id;
-            const date = document.getElementById('shiftDate').value;
-            const shiftType = document.getElementById('shiftType').value;
-            const hours = document.getElementById('shiftHours').value;
-            const status = document.getElementById('shiftStatusSelect').value;
-
-            if (!volId || !date || !hours) {
-                setStatus('shiftStatus', 'Please enter all required shift fields.', 'error');
-                return;
-            }
-
-            setStatus('shiftStatus', 'Logging shift...', 'loading');
-
-            try {
-                const response = await fetch(`${API_URL}/shifts/log`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ staff_id: volId, date: date, shift_type: shiftType, hours: Number(hours), status: status })
-                });
-                const result = await response.json();
-
-                if (!response.ok) {
-                    setStatus('shiftStatus', result.error || 'Error logging shift.', 'error');
-                    return;
-                }
-
-                setStatus('shiftStatus', result.message, 'success');
-                if(session.role === 'ADMIN') document.getElementById('shiftStaffId').value = '';
-                document.getElementById('shiftHours').value = '';
-                loadDashboardData(session);
-            } catch (error) {
-                setStatus('shiftStatus', 'Network error logging shift.', 'error');
-            }
-        }
-
-        async function loadDashboardData(user) {
-            try {
-                let shiftsUrl = `${API_URL}/shifts`;
-                if (user.role !== 'ADMIN') {
-                    shiftsUrl += `?staff_id=${user.staff_id}`;
-                }
-
-                const [staffRes, shiftsRes] = await Promise.all([
-                    user.role === 'ADMIN' ? fetch(`${API_URL}/volunteers`) : Promise.resolve(null),
-                    fetch(shiftsUrl)
-                ]);
-
-                if (staffRes && staffRes.ok) {
-                    const staffData = await staffRes.json();
-                    const volunteers = staffData.volunteers || [];
-                    const staffBody = document.getElementById('staffTableBody');
-                    staffBody.innerHTML = volunteers.length === 0 ? '<tr><td colspan="3" class="empty-msg">No staff registered.</td></tr>' :
-                        volunteers.map(v => `<tr><td>${v.staff_id}</td><td>${v.full_name}</td><td>${v.role}</td></tr>`).join('');
-                }
-
-                if (shiftsRes.ok) {
-                    const shiftsData = await shiftsRes.json();
-                    const shifts = shiftsData.shifts || [];
-                    const shiftsBody = document.getElementById('shiftsTableBody');
-                    shiftsBody.innerHTML = shifts.length === 0 ? '<tr><td colspan="7" class="empty-msg">No shifts found.</td></tr>' :
-                        shifts.map(s => `<tr><td>${s.staff_id}</td><td>${s.full_name}</td><td>${s.role}</td><td>${s.date}</td><td>${s.shift_type}</td><td>${s.hours}</td><td>${s.status}</td></tr>`).join('');
-                }
-            } catch (error) {
-                console.error('Error loading data:', error);
-            }
-        }
-
-        if (staffRes && staffRes.ok) {
-                    const staffData = await staffRes.json();
-                    const volunteers = staffData.volunteers || [];
-                    const staffBody = document.getElementById('staffTableBody');
-                    staffBody.innerHTML = volunteers.length === 0 ? '<tr><td colspan="4" class="empty-msg">No staff registered.</td></tr>' :
-                        volunteers.map(v => `
-                            <tr>
-                                <td>${v.staff_id}</td>
-                                <td>${v.full_name}</td>
-                                <td>${v.role}</td>
-                                <td>
-                                    <button onclick="toggleStaffStatus('${v.staff_id}', ${!v.is_active})" style="padding: 6px 12px; margin:0; background-color: ${v.is_active !== false ? '#ef4444' : '#22c55e'}; color: white; font-size: 12px;">
-                                        ${v.is_active !== false ? 'Deactivate' : 'Activate'}
-                                    </button>
-                                </td>
-                            </tr>
-                        `).join('');
-        }
-        
-        async function toggleStaffStatus(staffId, makeActive) {
-            try {
-                const response = await fetch(`${API_URL}/volunteers/status`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ staff_id: staffId, is_active: makeActive })
-                });
-                const result = await response.json();
-                if (response.ok) {
-                    alert(result.message);
-                    loadDashboardData(JSON.parse(sessionStorage.getItem('user_session')));
-                } else {
-                    alert(result.error || 'Failed to update status.');
-                }
-            } catch (err) {
-                alert('Network error updating status.');
-            }
-        }
-    </script>
 </body>
 </html>
