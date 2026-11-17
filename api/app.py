@@ -49,7 +49,7 @@ def lambda_handler(event, context):
     except json.JSONDecodeError:
         return response(400, {"error": "Invalid JSON payload"})
 
-    # this is the login route
+    # 1. LOGIN ROUTE (Fixed order so legacy accounts get auto-assigned password123)
     if method == "POST" and (path.endswith("/login") or path == "/login"):
         staff_id = str(body.get("staff_id", "")).strip().upper()
         password = str(body.get("password", ""))
@@ -60,28 +60,27 @@ def lambda_handler(event, context):
         pk = f"VOL#{staff_id}"
         staff = table.get_item(Key={"PK": pk, "SK": "PROFILE"}).get("Item")
 
-        if not staff or staff.get("Password") != hash_password(password):
+        if not staff:
             return response(401, {"error": "Invalid Staff ID or Password."})
+
+        # Check if the account is deactivated first
+        if staff.get("IsActive") is False:
+            return response(403, {"error": "Your account has been deactivated. Contact your administrator."})
 
         stored_password = staff.get("Password")
         
-        # this supports profiles without passwords
+        # LEGACY SUPPORT: If profile was created before passwords existed
         if not stored_password:
-            # we're giving them a default temp password (e.g., "password123")
             default_hash = hash_password("password123")
             table.update_item(
                 Key={"PK": pk, "SK": "PROFILE"},
-                UpdateExpression="SET Password = :p",
-                ExpressionAttributeValues={":p": default_hash}
+                UpdateExpression="SET Password = :p, IsActive = :act",
+                ExpressionAttributeValues={":p": default_hash, ":act": True}
             )
             stored_password = default_hash
 
         if stored_password != hash_password(password):
-            return response(401, {"error": "Invalid Staff ID or Password. (If this is an old account, try logging in with password 'password123')"})
-            
-        # this checks if the account is active or deactivated
-        if staff.get("IsActive") is False:
-            return response(403, {"error": "Your account has been deactivated. Contact your administrator."})
+            return response(401, {"error": "Invalid Staff ID or Password."})
 
         return response(200, {
             "message": "Login successful",
@@ -90,12 +89,12 @@ def lambda_handler(event, context):
             "role": staff.get("Role", "STAFF")
         })
 
-    # staff registration code added password and role)
+    # 2. STAFF REGISTRATION ROUTE
     if method == "POST" and path.endswith("/volunteers"):
         staff_id = str(body.get("staff_id") or body.get("id") or "").strip().upper()
         full_name = str(body.get("full_name") or body.get("name") or "").strip()
         role = str(body.get("role") or body.get("skills") or "STAFF").strip().upper()
-        password = str(body.get("password", "password123")).strip()  # default temp password if omitted
+        password = str(body.get("password", "password123")).strip()
         skills = body.get("skills", [])
 
         if not staff_id or not full_name:
@@ -113,6 +112,7 @@ def lambda_handler(event, context):
                     "Role": role,
                     "Password": hash_password(password),
                     "Skills": skills,
+                    "IsActive": True,
                 },
                 ConditionExpression="attribute_not_exists(PK)",
             )
@@ -122,10 +122,10 @@ def lambda_handler(event, context):
                 return response(409, {"error": f"Staff ID '{staff_id}' is already taken."})
             raise
 
-    # this is the admin's staff active/deactivate action
+    # 3. TOGGLE STAFF STATUS ROUTE (Admin active/deactivate)
     if method == "POST" and path.endswith("/volunteers/status"):
         target_staff_id = str(body.get("staff_id", "")).strip().upper()
-        is_active = body.get("is_active") # boolean true/false
+        is_active = body.get("is_active")
 
         if not target_staff_id or is_active is None:
             return response(400, {"error": "staff_id and is_active status are required."})
@@ -146,7 +146,7 @@ def lambda_handler(event, context):
                 return response(404, {"error": f"Staff ID '{target_staff_id}' not found."})
             raise
 
-    # reset staff password - admin only
+    # 4. ADMIN RESET PASSWORD ROUTE
     if method == "POST" and path.endswith("/volunteers/password"):
         target_staff_id = str(body.get("staff_id", "")).strip().upper()
         new_password = str(body.get("password", "")).strip()
@@ -168,7 +168,7 @@ def lambda_handler(event, context):
                 return response(404, {"error": f"Staff ID '{target_staff_id}' not found."})
             raise
 
-    # log shift code
+    # 5. LOG SHIFT ROUTE
     if method == "POST" and (path.endswith("/shifts") or path.endswith("/shifts/log")):
         staff_id = str(body.get("staff_id") or body.get("vol_id") or "").strip().upper()
         date = str(body.get("date", "")).strip()
@@ -199,7 +199,7 @@ def lambda_handler(event, context):
         )
         return response(201, {"message": f"Shift logged for {existing_staff.get('FullName')} ({staff_id})."})
 
-    # this gets volunteers - giving admin all access and personal profile for staff
+    # 6. GET VOLUNTEERS (Fixed to include is_active property for admin buttons)
     if method == "GET" and path.endswith("/volunteers"):
         result = table.scan(FilterExpression=Attr("SK").eq("PROFILE"))
         staff_list = []
@@ -208,22 +208,21 @@ def lambda_handler(event, context):
                 "staff_id": item.get("StaffId") or item["PK"].replace("VOL#", ""),
                 "full_name": item.get("FullName") or "N/A",
                 "role": item.get("Role", "STAFF"),
+                "is_active": item.get("IsActive", True),
             })
         return response(200, {"volunteers": staff_list})
 
-    # this shows shift filtered by staff_id or everyone for admin
+    # 7. GET SHIFTS ROUTE
     if method == "GET" and path.endswith("/shifts"):
         filter_staff_id = query_params.get("staff_id")
         
         if filter_staff_id:
-            # queries specific staff table for personal view
             result = table.query(
                 KeyConditionExpression="PK = :pk",
                 ExpressionAttributeValues={":pk": f"VOL#{filter_staff_id.upper()}"}
             )
             items = result.get("Items", [])
         else:
-            # queries all items for admin view
             items = table.scan().get("Items", [])
 
         profiles = {item["PK"]: item for item in items if item.get("SK") == "PROFILE"}
