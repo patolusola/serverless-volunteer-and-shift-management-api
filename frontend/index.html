@@ -384,6 +384,44 @@
                 console.error('Error loading data:', error);
             }
         }
+
+        if (staffRes && staffRes.ok) {
+                    const staffData = await staffRes.json();
+                    const volunteers = staffData.volunteers || [];
+                    const staffBody = document.getElementById('staffTableBody');
+                    staffBody.innerHTML = volunteers.length === 0 ? '<tr><td colspan="4" class="empty-msg">No staff registered.</td></tr>' :
+                        volunteers.map(v => `
+                            <tr>
+                                <td>${v.staff_id}</td>
+                                <td>${v.full_name}</td>
+                                <td>${v.role}</td>
+                                <td>
+                                    <button onclick="toggleStaffStatus('${v.staff_id}', ${!v.is_active})" style="padding: 6px 12px; margin:0; background-color: ${v.is_active !== false ? '#ef4444' : '#22c55e'}; color: white; font-size: 12px;">
+                                        ${v.is_active !== false ? 'Deactivate' : 'Activate'}
+                                    </button>
+                                </td>
+                            </tr>
+                        `).join('');
+        }
+        
+        async function toggleStaffStatus(staffId, makeActive) {
+            try {
+                const response = await fetch(`${API_URL}/volunteers/status`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ staff_id: staffId, is_active: makeActive })
+                });
+                const result = await response.json();
+                if (response.ok) {
+                    alert(result.message);
+                    loadDashboardData(JSON.parse(sessionStorage.getItem('user_session')));
+                } else {
+                    alert(result.error || 'Failed to update status.');
+                }
+            } catch (err) {
+                alert('Network error updating status.');
+            }
+        }
     </script>
 </body>
 </html>

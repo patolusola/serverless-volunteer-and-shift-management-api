@@ -45,6 +45,12 @@ resource "aws_apigatewayv2_route" "get_volunteers" {
   target    = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"
 }
 
+resource "aws_apigatewayv2_route" "post_volunteer_status" {
+  api_id    = aws_apigatewayv2_api.http_api.id
+  route_key = "POST /volunteers/status"
+  target    = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"
+}
+
 resource "aws_apigatewayv2_route" "get_shifts" {
   api_id    = aws_apigatewayv2_api.http_api.id 
   route_key = "GET /shifts"

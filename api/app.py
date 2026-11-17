@@ -63,6 +63,26 @@ def lambda_handler(event, context):
         if not staff or staff.get("Password") != hash_password(password):
             return response(401, {"error": "Invalid Staff ID or Password."})
 
+        stored_password = staff.get("Password")
+        
+        # this supports profiles without passwords
+        if not stored_password:
+            # we're giving them a default temp password (e.g., "password123")
+            default_hash = hash_password("password123")
+            table.update_item(
+                Key={"PK": pk, "SK": "PROFILE"},
+                UpdateExpression="SET Password = :p",
+                ExpressionAttributeValues={":p": default_hash}
+            )
+            stored_password = default_hash
+
+        if stored_password != hash_password(password):
+            return response(401, {"error": "Invalid Staff ID or Password. (If this is an old account, try logging in with password 'password123')"})
+            
+        # this checks if the account is active or deactivated
+        if staff.get("IsActive") is False:
+            return response(403, {"error": "Your account has been deactivated. Contact your administrator."})
+
         return response(200, {
             "message": "Login successful",
             "staff_id": staff.get("StaffId"),
@@ -100,6 +120,30 @@ def lambda_handler(event, context):
         except ClientError as e:
             if e.response["Error"]["Code"] == "ConditionalCheckFailedException":
                 return response(409, {"error": f"Staff ID '{staff_id}' is already taken."})
+            raise
+
+    # this is the admin's staff active/deactivate action
+    if method == "POST" and path.endswith("/volunteers/status"):
+        target_staff_id = str(body.get("staff_id", "")).strip().upper()
+        is_active = body.get("is_active") # boolean true/false
+
+        if not target_staff_id or is_active is None:
+            return response(400, {"error": "staff_id and is_active status are required."})
+
+        pk = f"VOL#{target_staff_id}"
+        
+        try:
+            table.update_item(
+                Key={"PK": pk, "SK": "PROFILE"},
+                UpdateExpression="SET IsActive = :val",
+                ExpressionAttributeValues={":val": bool(is_active)},
+                ConditionExpression="attribute_exists(PK)"
+            )
+            status_word = "activated" if is_active else "deactivated"
+            return response(200, {"message": f"Staff {target_staff_id} has been {status_word} successfully."})
+        except ClientError as e:
+            if e.response["Error"]["Code"] == "ConditionalCheckFailedException":
+                return response(404, {"error": f"Staff ID '{target_staff_id}' not found."})
             raise
 
     # log shift code
