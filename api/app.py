@@ -146,6 +146,28 @@ def lambda_handler(event, context):
                 return response(404, {"error": f"Staff ID '{target_staff_id}' not found."})
             raise
 
+    # reset staff password - admin only
+    if method == "POST" and path.endswith("/volunteers/password"):
+        target_staff_id = str(body.get("staff_id", "")).strip().upper()
+        new_password = str(body.get("password", "")).strip()
+
+        if not target_staff_id or not new_password:
+            return response(400, {"error": "staff_id and new_password are required."})
+
+        pk = f"VOL#{target_staff_id}"
+        try:
+            table.update_item(
+                Key={"PK": pk, "SK": "PROFILE"},
+                UpdateExpression="SET Password = :p",
+                ExpressionAttributeValues={":p": hash_password(new_password)},
+                ConditionExpression="attribute_exists(PK)"
+            )
+            return response(200, {"message": f"Password reset successfully for staff {target_staff_id}."})
+        except ClientError as e:
+            if e.response["Error"]["Code"] == "ConditionalCheckFailedException":
+                return response(404, {"error": f"Staff ID '{target_staff_id}' not found."})
+            raise
+
     # log shift code
     if method == "POST" and (path.endswith("/shifts") or path.endswith("/shifts/log")):
         staff_id = str(body.get("staff_id") or body.get("vol_id") or "").strip().upper()

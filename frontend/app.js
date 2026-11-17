@@ -182,6 +182,26 @@ async function loadDashboardData(user) {
                 `).join('');
         }
 
+        if (staffRes && staffRes.ok) {
+            const staffData = await staffRes.json();
+            const volunteers = staffData.volunteers || [];
+            const staffBody = document.getElementById('staffTableBody');
+            staffBody.innerHTML = volunteers.length === 0 ? '<tr><td colspan="4" class="empty-msg">No staff registered.</td></tr>' :
+                volunteers.map(v => `
+                    <tr>
+                        <td>${v.staff_id}</td>
+                        <td>${v.full_name}</td>
+                        <td>${v.role}</td>
+                        <td>
+                            <button onclick="resetStaffPassword('${v.staff_id}')" style="padding: 4px 8px; margin:0 4px 0 0; background-color: #3b82f6; color: white; font-size: 11px; width: auto;">Reset Pwd</button>
+                            <button onclick="toggleStaffStatus('${v.staff_id}', ${v.is_active === false ? 'true' : 'false'})" style="padding: 4px 8px; margin:0; background-color: ${v.is_active === false ? '#22c55e' : '#ef4444'}; color: white; font-size: 11px; width: auto;">
+                                ${v.is_active === false ? 'Activate' : 'Deactivate'}
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+        }
+
         if (shiftsRes.ok) {
             const shiftsData = await shiftsRes.json();
             const shifts = shiftsData.shifts || [];
@@ -210,5 +230,26 @@ async function toggleStaffStatus(staffId, makeActive) {
         }
     } catch (err) {
         alert('Network error updating status.');
+    }
+}
+
+async function resetStaffPassword(staffId) {
+    const newPassword = prompt(`Enter a new temporary password for staff ${staffId}:`);
+    if (!newPassword) return;
+
+    try {
+        const response = await fetch(`${API_URL}/volunteers/password`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ staff_id: staffId, password: newPassword })
+        });
+        const result = await response.json();
+        if (response.ok) {
+            alert(result.message);
+        } else {
+            alert(result.error || 'Failed to reset password.');
+        }
+    } catch (err) {
+        alert('Network error resetting password.');
     }
 }
