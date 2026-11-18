@@ -89,7 +89,7 @@ def lambda_handler(event, context):
             "role": staff.get("Role", "STAFF")
         })
 
-    # 2. STAFF REGISTRATION & PROFILE RESTORATION ROUTE (Upsert)
+    # 2. STAFF REGISTRATION ROUTE
     if method == "POST" and path.endswith("/volunteers"):
         staff_id = str(body.get("staff_id") or body.get("id") or "").strip().upper()
         full_name = str(body.get("full_name") or body.get("name") or "").strip()
@@ -102,20 +102,26 @@ def lambda_handler(event, context):
 
         pk = f"VOL#{staff_id}"
 
-        # Using put_item without condition allows restoring profiles for existing partitions (like 001/002 shifts)
-        table.put_item(
-            Item={
-                "PK": pk,
-                "SK": "PROFILE",
-                "StaffId": staff_id,
-                "FullName": full_name,
-                "Role": role,
-                "Password": hash_password(password),
-                "Skills": skills,
-                "IsActive": True,
-            }
-        )
-        return response(200, {"message": f"Staff {staff_id} ({full_name}) saved successfully."})
+        try:
+            table.put_item(
+                Item={
+                    "PK": pk,
+                    "SK": "PROFILE",
+                    "StaffId": staff_id,
+                    "FullName": full_name,
+                    "Role": role,
+                    "Password": hash_password(password),
+                    "Skills": skills,
+                    "IsActive": True,
+                },
+                ConditionExpression="attribute_not_exists(#pk)",
+                ExpressionAttributeNames={"#pk": "PK"}
+            )
+            return response(201, {"message": f"Staff {staff_id} ({full_name}) registered as {role}."})
+        except ClientError as e:
+            if e.response["Error"]["Code"] == "ConditionalCheckFailedException":
+                return response(409, {"error": f"Staff ID '{staff_id}' is already taken."})
+            raise
 
     # 3. TOGGLE STAFF STATUS ROUTE (Admin active/deactivate)
     if method == "POST" and path.endswith("/volunteers/status"):
@@ -204,29 +210,6 @@ def lambda_handler(event, context):
                 "is_active": item.get("IsActive", True),
             })
         return response(200, {"volunteers": staff_list})
-
-    # TEMPORARY FIX ROUTE TO RESTORE LEGACY PROFILES
-    if method == "POST" and path.endswith("/volunteers/restore"):
-        target_staff_id = str(body.get("staff_id", "")).strip().upper()
-        full_name = str(body.get("full_name", "")).strip()
-        role = str(body.get("role", "STAFF")).strip().upper()
-
-        if not target_staff_id or not full_name:
-            return response(400, {"error": "staff_id and full_name are required."})
-
-        pk = f"VOL#{target_staff_id}"
-        table.put_item(
-            Item={
-                "PK": pk,
-                "SK": "PROFILE",
-                "StaffId": target_staff_id,
-                "FullName": full_name,
-                "Role": role,
-                "Password": hash_password("password123"),
-                "IsActive": True,
-            }
-        )
-        return response(200, {"message": f"Profile restored for {target_staff_id} ({full_name})."})
 
     # 7. GET SHIFTS ROUTE
     if method == "GET" and path.endswith("/shifts"):
