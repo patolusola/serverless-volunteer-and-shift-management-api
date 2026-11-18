@@ -211,6 +211,29 @@ def lambda_handler(event, context):
             })
         return response(200, {"volunteers": staff_list})
 
+    # TEMPORARY FIX ROUTE TO RESTORE LEGACY PROFILES
+    if method == "POST" and path.endswith("/volunteers/restore"):
+        target_staff_id = str(body.get("staff_id", "")).strip().upper()
+        full_name = str(body.get("full_name", "")).strip()
+        role = str(body.get("role", "STAFF")).strip().upper()
+
+        if not target_staff_id or not full_name:
+            return response(400, {"error": "staff_id and full_name are required."})
+
+        pk = f"VOL#{target_staff_id}"
+        table.put_item(
+            Item={
+                "PK": pk,
+                "SK": "PROFILE",
+                "StaffId": target_staff_id,
+                "FullName": full_name,
+                "Role": role,
+                "Password": hash_password("password123"),
+                "IsActive": True,
+            }
+        )
+        return response(200, {"message": f"Profile restored for {target_staff_id} ({full_name})."})
+
     # 7. GET SHIFTS ROUTE
     if method == "GET" and path.endswith("/shifts"):
         filter_staff_id = query_params.get("staff_id")
