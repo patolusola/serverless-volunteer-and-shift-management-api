@@ -89,7 +89,7 @@ def lambda_handler(event, context):
             "role": staff.get("Role", "STAFF")
         })
 
-    # 2. STAFF REGISTRATION ROUTE
+    # 2. STAFF REGISTRATION & PROFILE RESTORATION ROUTE (Upsert)
     if method == "POST" and path.endswith("/volunteers"):
         staff_id = str(body.get("staff_id") or body.get("id") or "").strip().upper()
         full_name = str(body.get("full_name") or body.get("name") or "").strip()
@@ -102,26 +102,20 @@ def lambda_handler(event, context):
 
         pk = f"VOL#{staff_id}"
 
-        try:
-            table.put_item(
-                Item={
-                    "PK": pk,
-                    "SK": "PROFILE",
-                    "StaffId": staff_id,
-                    "FullName": full_name,
-                    "Role": role,
-                    "Password": hash_password(password),
-                    "Skills": skills,
-                    "IsActive": True,
-                },
-                ConditionExpression="attribute_not_exists(#pk)",
-                ExpressionAttributeNames={"#pk": "PK"}
-            )
-            return response(201, {"message": f"Staff {staff_id} ({full_name}) registered as {role}."})
-        except ClientError as e:
-            if e.response["Error"]["Code"] == "ConditionalCheckFailedException":
-                return response(409, {"error": f"Staff ID '{staff_id}' is already taken."})
-            raise
+        # Using put_item without condition allows restoring profiles for existing partitions (like 001/002 shifts)
+        table.put_item(
+            Item={
+                "PK": pk,
+                "SK": "PROFILE",
+                "StaffId": staff_id,
+                "FullName": full_name,
+                "Role": role,
+                "Password": hash_password(password),
+                "Skills": skills,
+                "IsActive": True,
+            }
+        )
+        return response(200, {"message": f"Staff {staff_id} ({full_name}) saved successfully."})
 
     # 3. TOGGLE STAFF STATUS ROUTE (Admin active/deactivate)
     if method == "POST" and path.endswith("/volunteers/status"):
