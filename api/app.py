@@ -137,16 +137,12 @@ def lambda_handler(event, context):
             table.update_item(
                 Key={"PK": pk, "SK": "PROFILE"},
                 UpdateExpression="SET IsActive = :val",
-                ExpressionAttributeValues={":val": bool(is_active)},
-                ExpressionAttributeNames={"#pk": "PK"},
-                ConditionExpression="attribute_exists(#pk)"
+                ExpressionAttributeValues={":val": bool(is_active)}
             )
             status_word = "activated" if is_active else "deactivated"
             return response(200, {"message": f"Staff {target_staff_id} has been {status_word} successfully."})
         except ClientError as e:
-            if e.response["Error"]["Code"] == "ConditionalCheckFailedException":
-                return response(404, {"error": f"Staff ID '{target_staff_id}' not found."})
-            raise
+            return response(500, {"error": str(e)})
 
     # 4. ADMIN RESET PASSWORD ROUTE
     if method == "POST" and path.endswith("/volunteers/password"):
