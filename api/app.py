@@ -49,7 +49,7 @@ def lambda_handler(event, context):
     except json.JSONDecodeError:
         return response(400, {"error": "Invalid JSON payload"})
 
-    # 1. LOGIN ROUTE (Fixed order so legacy accounts get auto-assigned password123)
+    # 1. LOGIN ROUTE
     if method == "POST" and (path.endswith("/login") or path == "/login"):
         staff_id = str(body.get("staff_id", "")).strip().upper()
         password = str(body.get("password", ""))
@@ -63,7 +63,6 @@ def lambda_handler(event, context):
         if not staff:
             return response(401, {"error": "Invalid Staff ID or Password."})
 
-        # Check if the account is deactivated first
         if staff.get("IsActive") is False:
             return response(403, {"error": "Your account has been deactivated. Contact your administrator."})
 
@@ -74,7 +73,8 @@ def lambda_handler(event, context):
             default_hash = hash_password("password123")
             table.update_item(
                 Key={"PK": pk, "SK": "PROFILE"},
-                UpdateExpression="SET Password = :p, IsActive = :act",
+                UpdateExpression="SET #pw = :p, IsActive = :act",
+                ExpressionAttributeNames={"#pw": "Password"},
                 ExpressionAttributeValues={":p": default_hash, ":act": True}
             )
             stored_password = default_hash
@@ -114,7 +114,8 @@ def lambda_handler(event, context):
                     "Skills": skills,
                     "IsActive": True,
                 },
-                ConditionExpression="attribute_not_exists(PK)",
+                ConditionExpression="attribute_not_exists(#pk)",
+                ExpressionAttributeNames={"#pk": "PK"}
             )
             return response(201, {"message": f"Staff {staff_id} ({full_name}) registered as {role}."})
         except ClientError as e:
@@ -137,7 +138,8 @@ def lambda_handler(event, context):
                 Key={"PK": pk, "SK": "PROFILE"},
                 UpdateExpression="SET IsActive = :val",
                 ExpressionAttributeValues={":val": bool(is_active)},
-                ConditionExpression="attribute_exists(PK)"
+                ExpressionAttributeNames={"#pk": "PK"},
+                ConditionExpression="attribute_exists(#pk)"
             )
             status_word = "activated" if is_active else "deactivated"
             return response(200, {"message": f"Staff {target_staff_id} has been {status_word} successfully."})
@@ -158,9 +160,10 @@ def lambda_handler(event, context):
         try:
             table.update_item(
                 Key={"PK": pk, "SK": "PROFILE"},
-                UpdateExpression="SET Password = :p",
+                UpdateExpression="SET #pw = :p",
+                ExpressionAttributeNames={"#pw": "Password", "#pk": "PK"},
                 ExpressionAttributeValues={":p": hash_password(new_password)},
-                ConditionExpression="attribute_exists(PK)"
+                ConditionExpression="attribute_exists(#pk)"
             )
             return response(200, {"message": f"Password reset successfully for staff {target_staff_id}."})
         except ClientError as e:
@@ -199,7 +202,7 @@ def lambda_handler(event, context):
         )
         return response(201, {"message": f"Shift logged for {existing_staff.get('FullName')} ({staff_id})."})
 
-    # 6. GET VOLUNTEERS (Fixed to include is_active property for admin buttons)
+    # 6. GET VOLUNTEERS
     if method == "GET" and path.endswith("/volunteers"):
         result = table.scan(FilterExpression=Attr("SK").eq("PROFILE"))
         staff_list = []
